@@ -1,10 +1,10 @@
 {
-  "name": "Sambo students",
-  "short_name": "Students",
+  "name": "SAMBO Students",
+  "short_name": "SAMBO Students",
   "start_url": ".",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#0f0f23",
+  "theme_color": "#0f0f23",
   "icons": [
     {
       "src": "judo.png",
