@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="shortcut icon" href="judo.png">
+    <link rel="manifest" href="manifest.json">
+    <title>Самбо - Управление учениками</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 50%, #2d2d54 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px 0;
+        }
+
+        .header h1 {
+            font-size: 2.8em;
+            color: #ff6b6b;
+            text-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+            margin-bottom: 10px;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            color: #a0a0a0;
+            font-size: 16px;
+            font-weight: 300;
+        }
+
+        .filter-section {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .filter-title {
+            color: #ff6b6b;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .filter-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #ffffff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 400;
+            backdrop-filter: blur(5px);
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: rgba(255, 107, 107, 0.2);
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(255, 107, 107, 0.2);
+            width: 100%;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(255, 107, 107, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-small {
+            padding: 10px 16px;
+            font-size: 14px;
+            width: auto;
+            margin: 0;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff5252, #f44336);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #4caf50, #388e3c);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6c7b95, #5a6c7d);
+        }
+
+        .students-list {
+            margin-top: 20px;
+        }
+
+        .student-item {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .student-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, transparent, #ff6b6b, transparent);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .student-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .student-item:hover::before {
+            opacity: 1;
+        }
+
+        .student-item.priority-high {
+            border-left: 4px solid #ff5252;
+            background: linear-gradient(135deg, rgba(255, 82, 82, 0.1), rgba(255, 255, 255, 0.05));
+        }
+
+        .student-item.priority-medium {
+            border-left: 4px solid #ff9800;
+            background: linear-gradient(135deg, rgba(255, 152, 0, 0.1), rgba(255, 255, 255, 0.05));
+        }
+
+        .student-item.priority-low {
+            border-left: 4px solid #2196f3;
+            background: linear-gradient(135deg, rgba(33, 150, 243, 0.1), rgba(255, 255, 255, 0.05));
+        }
+
+        .student-item.priority-ok {
+            border-left: 4px solid #4caf50;
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(255, 255, 255, 0.05));
+        }
+
+        .student-name {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #ffffff;
+        }
+
+        .student-info {
+            font-size: 14px;
+            color: #a0a0a0;
+            font-weight: 400;
+        }
+
+        .training-count {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: rgba(255, 107, 107, 0.2);
+            backdrop-filter: blur(10px);
+            color: #ff6b6b;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 100%);
+            margin: 50px auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(20px);
+        }
+
+        .close {
+            color: #a0a0a0;
+            float: right;
+            font-size: 24px;
+            font-weight: normal;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #ff6b6b;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #ff6b6b;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            color: white;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(5px);
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+            box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
+        }
+
+        .student-detail {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .student-detail h2 {
+            color: #ff6b6b;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: 400;
+            font-size: 24px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .info-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-item label {
+            display: block;
+            color: #a0a0a0;
+            font-size: 12px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .info-item .value {
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .training-list {
+            margin-top: 20px;
+        }
+
+        .training-list h3 {
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            font-weight: 400;
+            font-size: 18px;
+        }
+
+        .training-item {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 18px;
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border-left: 3px solid #ff6b6b;
+            backdrop-filter: blur(5px);
+        }
+
+        .training-date {
+            font-weight: 600;
+            color: #ff6b6b;
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .training-number {
+            font-size: 12px;
+            color: #a0a0a0;
+            margin-bottom: 8px;
+        }
+
+        .training-description {
+            color: #ffffff;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .back-btn {
+            background: linear-gradient(135deg, #6c7b95, #5a6c7d);
+            margin-bottom: 20px;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+        }
+
+        .button-row .btn {
+            flex: 1;
+            margin: 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0a0a0;
+        }
+
+        .empty-state h3 {
+            margin-bottom: 10px;
+            color: #ff6b6b;
+            font-weight: 400;
+            font-size: 20px;
+        }
+
+        .empty-state p {
+            font-size: 14px;
+            opacity: 0.7;
+        }
+
+        /* Анимации */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .student-item {
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 10px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .button-row {
+                flex-direction: column;
+            }
+            
+            .filter-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Главная страница -->
+        <div id="main-page">
+            <div class="header">
+                <h1>🥋 САМБО</h1>
+                <p>Управление учениками</p>
+            </div>
+
+            <div class="filter-section">
+                <div class="filter-title">Сортировка</div>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" onclick="setFilter('default')">По умолчанию</button>
+                    <button class="filter-btn" onclick="setFilter('trainings-asc')">По тренировкам ↑</button>
+                    <button class="filter-btn" onclick="setFilter('trainings-desc')">По тренировкам ↓</button>
+                </div>
+            </div>
+
+            <button class="btn" onclick="openAddStudentModal()">
+                ➕ Добавить ученика
+            </button>
+
+            <div class="students-list">
+                <div id="students-container">
+                    <div class="empty-state">
+                        <h3>Нет учеников</h3>
+                        <p>Добавьте первого ученика</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Страница ученика -->
+        <div id="student-page" class="hidden">
+            <button class="btn back-btn" onclick="showMainPage()">
+                ← Назад
+            </button>
+
+            <div class="student-detail">
+                <h2 id="student-name-detail"></h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <label>Сумма оплаты</label>
+                        <div class="value" id="student-payment-detail"></div>
+                    </div>
+                    <div class="info-item">
+                        <label>Дата оплаты</label>
+                        <div class="value" id="student-date-detail"></div>
+                    </div>
+                    <div class="info-item">
+                        <label>Осталось тренировок</label>
+                        <div class="value" id="student-trainings-detail"></div>
+                    </div>
+                </div>
+
+                <div class="button-row">
+                    <button class="btn btn-success btn-small" onclick="openAttendanceModal()">
+                        ✓ Посещение
+                    </button>
+                    <button class="btn btn-warning btn-small" onclick="openPaymentModal()">
+                        💰 Оплата
+                    </button>
+                    <button class="btn btn-danger btn-small" onclick="deleteStudent()">
+                        🗑 Удалить
+                    </button>
+                </div>
+            </div>
+
+            <div class="training-list">
+                <h3>История тренировок</h3>
+                <div id="trainings-container">
+                    <div class="empty-state">
+                        <p>Нет записей о тренировках</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальные окна -->
+    <!-- Добавить ученика -->
+    <div id="addStudentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addStudentModal')">&times;</span>
+            <h2 style="color: #ff6b6b; margin-bottom: 20px; font-weight: 400;">Добавить ученика</h2>
+            <form id="addStudentForm">
+                <div class="form-group">
+                    <label>Фамилия и имя</label>
+                    <input type="text" id="studentName" required>
+                </div>
+                <div class="form-group">
+                    <label>Количество тренировок</label>
+                    <input type="number" id="trainingCount" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Сумма оплаты</label>
+                    <input type="number" id="paymentAmount" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Дата оплаты</label>
+                    <input type="date" id="paymentDate" required>
+                </div>
+                <button type="submit" class="btn">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Отметить посещение -->
+    <div id="attendanceModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('attendanceModal')">&times;</span>
+            <h2 style="color: #ff6b6b; margin-bottom: 20px; font-weight: 400;">Отметить посещение</h2>
+            <form id="attendanceForm">
+                <div class="form-group">
+                    <label>Дата тренировки</label>
+                    <input type="date" id="attendanceDate" required>
+                </div>
+                <div class="form-group">
+                    <label>Описание (необязательно)</label>
+                    <input type="text" id="attendanceDescription" placeholder="Описание тренировки">
+                </div>
+                <button type="submit" class="btn">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Добавить оплату -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('paymentModal')">&times;</span>
+            <h2 style="color: #ff6b6b; margin-bottom: 20px; font-weight: 400;">Добавить оплату</h2>
+            <form id="paymentForm">
+                <div class="form-group">
+                    <label>Количество тренировок</label>
+                    <input type="number" id="newTrainingCount" min="1" required>
+                </div>
+                <div class="form-group">
+                    <label>Сумма оплаты</label>
+                    <input type="number" id="newPaymentAmount" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Дата оплаты</label>
+                    <input type="date" id="newPaymentDate" required>
+                </div>
+                <button type="submit" class="btn">Сохранить</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения удаления -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('deleteModal')">&times;</span>
+            <h2 style="color: #ff6b6b; margin-bottom: 20px; font-weight: 400;">Подтверждение удаления</h2>
+            <p style="margin-bottom: 20px; text-align: center;">Вы уверены, что хотите удалить этого ученика?</p>
+            <p style="margin-bottom: 30px; text-align: center; color: #ff9800;">Все данные будут безвозвратно потеряны!</p>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-danger" onclick="confirmDelete()">Удалить</button>
+                <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Глобальные переменные
+        let students = [];
+        let currentStudentId = null;
+        let currentFilter = 'default';
+
+        // Загрузка данных при запуске
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudents();
+            setDefaultDate();
+        });
+
+        // Функции для работы с localStorage
+        function saveStudents() {
+            const studentsData = JSON.stringify(students);
+            localStorage.setItem('sambo_students', studentsData);
+        }
+
+        function loadStudents() {
+            const studentsData = localStorage.getItem('sambo_students');
+            if (studentsData) {
+                students = JSON.parse(studentsData);
+            }
+            renderStudents();
+        }
+
+        // Установка текущей даты по умолчанию
+        function setDefaultDate() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('paymentDate').value = today;
+            document.getElementById('attendanceDate').value = today;
+            document.getElementById('newPaymentDate').value = today;
+        }
+
+        // Функция фильтрации
+        function setFilter(filterType) {
+            currentFilter = filterType;
+            
+            // Обновляем активную кнопку
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            renderStudents();
+        }
+
+        // Сортировка студентов
+        function sortStudents(students) {
+            switch(currentFilter) {
+                case 'trainings-asc':
+                    return [...students].sort((a, b) => a.trainingsLeft - b.trainingsLeft);
+                case 'trainings-desc':
+                    return [...students].sort((a, b) => b.trainingsLeft - a.trainingsLeft);
+                default:
+                    return [...students].sort((a, b) => a.id - b.id);
+            }
+        }
+
+        // Рендер списка учеников
+        function renderStudents() {
+            const container = document.getElementById('students-container');
+            
+            if (students.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Нет учеников</h3>
+                        <p>Добавьте первого ученика</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const sortedStudents = sortStudents(students);
+            
+            container.innerHTML = sortedStudents.map(student => {
+                const priorityClass = getPriorityClass(student.trainingsLeft);
+                return `
+                    <div class="student-item ${priorityClass}" onclick="showStudentDetail(${student.id})">
+                        <div class="student-name">${student.name}</div>
+                        <div class="student-info">
+                            Оплачено: ${student.paymentAmount}₽ • ${formatDate(student.paymentDate)}
+                        </div>
+                        <div class="training-count">${student.trainingsLeft}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Определение приоритета по цвету
+        function getPriorityClass(trainingsLeft) {
+            if (trainingsLeft === 0) return 'priority-high';
+            if (trainingsLeft === 1) return 'priority-medium';
+            if (trainingsLeft === 2) return 'priority-low';
+            else return 'priority-ok'
+            return '';
+        }
+
+        // Форматирование даты
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU');
+        }
+
+        // Модальные окна
+        function openAddStudentModal() {
+            document.getElementById('addStudentModal').style.display = 'block';
+        }
+
+        function openAttendanceModal() {
+            document.getElementById('attendanceModal').style.display = 'block';
+        }
+
+        function openPaymentModal() {
+            document.getElementById('paymentModal').style.display = 'block';
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Обработка форм
+        document.getElementById('addStudentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const student = {
+                id: Date.now(),
+                name: document.getElementById('studentName').value,
+                trainingsLeft: parseInt(document.getElementById('trainingCount').value),
+                paymentAmount: parseInt(document.getElementById('paymentAmount').value),
+                paymentDate: document.getElementById('paymentDate').value,
+                trainings: []
+            };
+
+            students.push(student);
+            saveStudents();
+            renderStudents();
+            closeModal('addStudentModal');
+            this.reset();
+            setDefaultDate();
+        });
+
+        document.getElementById('attendanceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const student = students.find(s => s.id === currentStudentId);
+            if (student && student.trainingsLeft > 0) {
+                const training = {
+                    id: Date.now(),
+                    date: document.getElementById('attendanceDate').value,
+                    description: document.getElementById('attendanceDescription').value || '',
+                    number: student.trainings.length + 1
+                };
+
+                student.trainings.unshift(training);
+                student.trainingsLeft--;
+                
+                saveStudents();
+                renderStudents();
+                showStudentDetail(currentStudentId);
+                closeModal('attendanceModal');
+                this.reset();
+                setDefaultDate();
+            }
+        });
+
+        document.getElementById('paymentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const student = students.find(s => s.id === currentStudentId);
+            if (student) {
+                student.trainingsLeft += parseInt(document.getElementById('newTrainingCount').value);
+                student.paymentAmount = parseInt(document.getElementById('newPaymentAmount').value);
+                student.paymentDate = document.getElementById('newPaymentDate').value;
+                student.trainings = [];
+                
+                saveStudents();
+                renderStudents();
+                showStudentDetail(currentStudentId);
+                closeModal('paymentModal');
+                this.reset();
+                setDefaultDate();
+            }
+        });
+
+        // Навигация между страницами
+        function showMainPage() {
+            document.getElementById('main-page').classList.remove('hidden');
+            document.getElementById('student-page').classList.add('hidden');
+        }
+
+        function showStudentDetail(studentId) {
+            currentStudentId = studentId;
+            const student = students.find(s => s.id === studentId);
+            
+            if (!student) return;
+
+            document.getElementById('student-name-detail').textContent = student.name;
+            document.getElementById('student-payment-detail').textContent = student.paymentAmount + '₽';
+            document.getElementById('student-date-detail').textContent = formatDate(student.paymentDate);
+            document.getElementById('student-trainings-detail').textContent = student.trainingsLeft;
+
+            renderTrainings(student.trainings);
+
+            document.getElementById('main-page').classList.add('hidden');
+            document.getElementById('student-page').classList.remove('hidden');
+        }
+
+        // Рендер тренировок
+        function renderTrainings(trainings) {
+            const container = document.getElementById('trainings-container');
+            
+            if (trainings.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>Нет записей о тренировках</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = trainings.map(training => `
+                <div class="training-item">
+                    <div class="training-date">${formatDate(training.date)}</div>
+                    <div class="training-number">Тренировка #${training.number}</div>
+                    ${training.description ? `<div class="training-description">${training.description}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
+        // Удаление ученика
+        function deleteStudent() {
+            document.getElementById('deleteModal').style.display = 'block';
+        }
+
+        function confirmDelete() {
+            students = students.filter(s => s.id !== currentStudentId);
+            saveStudents();
+            renderStudents();
+            closeModal('deleteModal');
+            showMainPage();
+        }
+
+        // Закрытие модального окна при клике вне его
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        };
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(reg => console.log('Service Worker registered'))
+                .catch(err => console.error('Service Worker registration failed:', err));
+        }
+    </script>
+</body>
+</html>
