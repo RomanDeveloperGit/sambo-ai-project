@@ -25,10 +25,6 @@
         }
 
         .home-btn-header {
-            position: absolute;
-            left: 20px;
-            top: 50%;
-            transform: translateY(-50%);
             background: rgba(138, 43, 226, 0.8);
             border: none;
             color: white;
@@ -42,10 +38,13 @@
 
         .home-btn-header:hover {
             background: rgba(138, 43, 226, 1);
-            transform: translateY(-50%) translateY(-1px);
+            transform: translateY(-1px);
         }
 
         .header {
+            display: flex;
+            align-items: center;
+
             text-align: center;
             padding: 20px 0;
             border-bottom: 2px solid rgba(255, 255, 255, 0.1);
@@ -58,6 +57,8 @@
             font-weight: 300;
             letter-spacing: 2px;
             color: #ff6b6b;
+
+            margin: 0 auto;
         }
 
         .controls {
@@ -362,7 +363,7 @@
 <body>
     <div class="container">
         <div class="header">
-            <a href="./index.html" class="home-btn-header">← Главная</a>
+            <a href="./index.html" class="home-btn-header">Назад</a>
             <h1>САМБО РАСПИСАНИЕ</h1>
         </div>
         
