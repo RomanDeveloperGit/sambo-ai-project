@@ -878,7 +878,7 @@
             modal.style.display = 'block';
         }
 
-        // Сохранение студентов
+        // Замените функцию saveStudents на эту:
         function saveStudents() {
             if (!selectedSlot) return;
             
@@ -900,31 +900,31 @@
                 return;
             }
             
-            const wasAttended = schedule[selectedSlot.key] ? schedule[selectedSlot.key].attended : false;
-            
-            schedule[selectedSlot.key] = {
-                students: selectedStudents,
-                attended: attendanceCheckbox.checked
-            };
-            
-            // Если отмечается посещение (и не было отмечено ранее)
-            if (attendanceCheckbox.checked && !wasAttended) {
-                // Сохраняем данные для последующего использования
-                pendingTrainingData = {
-                    selectedStudents: selectedStudents,
-                    slotKey: selectedSlot.key,
-                    slotDate: selectedSlot.date,
-                    slotTime: selectedSlot.time
+            // Если галочка НЕ выбрана - сохраняем сразу
+            if (!attendanceCheckbox.checked) {
+                schedule[selectedSlot.key] = {
+                    students: selectedStudents,
+                    attended: false
                 };
                 
-                // Открываем модальное окно для ввода описания
-                closeStudentModal();
-                openTrainingDescriptionModal();
-            } else {
                 saveSchedule();
                 renderCalendar();
                 closeStudentModal();
+                return;
             }
+            
+            // Если галочка выбрана - сохраняем данные для последующего использования
+            // НЕ сохраняем в schedule до ввода описания
+            pendingTrainingData = {
+                selectedStudents: selectedStudents,
+                slotKey: selectedSlot.key,
+                slotDate: selectedSlot.date,
+                slotTime: selectedSlot.time
+            };
+            
+            // Открываем модальное окно для ввода описания
+            closeStudentModal();
+            openTrainingDescriptionModal();
         }
 
         // Закрытие модального окна студентов
@@ -1047,7 +1047,7 @@
             document.getElementById('trainingDescriptionInput').focus();
         }
 
-        // Сохранение описания тренировки
+        // Замените функцию saveTrainingDescription на эту:
         function saveTrainingDescription() {
             if (!pendingTrainingData) return;
             
@@ -1087,32 +1087,33 @@
             // Сохраняем обновленных студентов в localStorage
             localStorage.setItem('sambo_students', JSON.stringify(students));
             
+            // ТОЛЬКО ТЕПЕРЬ сохраняем слот в schedule
+            schedule[pendingTrainingData.slotKey] = {
+                students: pendingTrainingData.selectedStudents,
+                attended: true
+            };
+            
             // Очищаем временные данные
             pendingTrainingData = null;
+            selectedSlot = null;
             
             saveSchedule();
             renderCalendar();
             closeTrainingDescriptionModal();
         }
 
-        // Закрытие модального окна описания тренировки
+        // Замените функцию closeTrainingDescriptionModal на эту:
         function closeTrainingDescriptionModal() {
             document.getElementById('trainingDescriptionModal').style.display = 'none';
             
-            // Если есть незавершенные данные, возвращаемся к модалке с учениками
+            // Если есть незавершенные данные, НЕ сохраняем слот вообще
             if (pendingTrainingData) {
-                // Восстанавливаем selectedSlot
-                selectedSlot = {
-                    date: pendingTrainingData.slotDate,
-                    time: pendingTrainingData.slotTime,
-                    key: pendingTrainingData.slotKey
-                };
-                
-                // Открываем модалку с учениками
-                openStudentModal(pendingTrainingData.slotDate, pendingTrainingData.slotTime);
-                
-                // Очищаем временные данные
+                // Очищаем временные данные без сохранения
                 pendingTrainingData = null;
+                selectedSlot = null;
+                
+                // Перерисовываем календарь (слот останется пустым)
+                renderCalendar();
             }
         }
 
