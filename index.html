@@ -942,10 +942,65 @@
         // Функции для работы с IndexedDB
         function openIndexedDB() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open('SamboScheduleDB', 1);
+                const request = indexedDB.open('SamboScheduleDB', 1)
                 
                 request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(request.result);
+                
+                request.onsuccess = () => {
+                    const db = request.result;
+                    
+                    // Проверяем наличие необходимых хранилищ
+                    const hasSchedule = db.objectStoreNames.contains('schedule');
+                    const hasTimeSlots = db.objectStoreNames.contains('timeSlots');
+                    
+                    if (!hasSchedule || !hasTimeSlots) {
+                        // Если хранилища отсутствуют, закрываем текущую базу и пересоздаем с новой версией
+                        db.close();
+                        
+                        // Удаляем старую базу данных
+                        const deleteRequest = indexedDB.deleteDatabase('SamboScheduleDB');
+                        deleteRequest.onsuccess = () => {
+                            // Создаем новую базу данных
+                            const newRequest = indexedDB.open('SamboScheduleDB', 1);
+                            
+                            newRequest.onerror = () => reject(newRequest.error);
+                            newRequest.onsuccess = () => resolve(newRequest.result);
+                            
+                            newRequest.onupgradeneeded = (event) => {
+                                const newDb = event.target.result;
+                                
+                                // Создаем объектное хранилище для расписания
+                                if (!newDb.objectStoreNames.contains('schedule')) {
+                                    newDb.createObjectStore('schedule', { keyPath: 'id', autoIncrement: true });
+                                }
+                                
+                                // Создаем объектное хранилище для временных слотов
+                                if (!newDb.objectStoreNames.contains('timeSlots')) {
+                                    newDb.createObjectStore('timeSlots', { keyPath: 'id', autoIncrement: true });
+                                }
+                            };
+                        };
+                        
+                        deleteRequest.onerror = () => reject(deleteRequest.error);
+                    } else {
+                        resolve(db);
+                    }
+                };
+                
+                // Создаем схему базы данных при первом открытии или обновлении версии
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    
+                    // Создаем объектное хранилище для расписания, если оно не существует
+                    if (!db.objectStoreNames.contains('schedule')) {
+                        db.createObjectStore('schedule', { keyPath: 'id', autoIncrement: true });
+                    }
+                    
+                    // Создаем объектное хранилище для временных слотов, если оно не существует
+                    if (!db.objectStoreNames.contains('timeSlots')) {
+                        db.createObjectStore('timeSlots', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
             });
         }
 
@@ -966,12 +1021,14 @@
                 const store = transaction.objectStore(storeName);
                 
                 // Очищаем существующие данные
-                store.clear();
+                const clearRequest = store.clear();
                 
-                // Добавляем новые данные
-                data.forEach(item => {
-                    store.add(item);
-                });
+                clearRequest.onsuccess = () => {
+                    // Добавляем новые данные
+                    data.forEach(item => {
+                        store.add(item);
+                    });
+                };
                 
                 transaction.oncomplete = () => resolve();
                 transaction.onerror = () => reject(transaction.error);
