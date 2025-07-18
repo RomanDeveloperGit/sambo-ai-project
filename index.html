@@ -54,6 +54,15 @@
             margin-bottom: 30px;
         }
 
+        .service-buttons {
+            display: flex;
+            gap: 16px
+        }
+
+        .service-buttons > .nav-btn {
+            background: #3b3d41;
+        }
+
         .nav-btn {
             background: linear-gradient(135deg, #6c7b95, #5a6c7d);
             color: white;
@@ -507,6 +516,14 @@
             </div>
 
             <div class="nav-buttons">
+                <div class="service-buttons">
+                    <button class="nav-btn" onclick="exportData()">
+                        📤 Экспорт
+                    </button>
+                    <button class="nav-btn" onclick="importData()">
+                        📥 Импорт
+                    </button>
+                </div>
                 <a href="./schedule_app.html" class="nav-btn">
                     📅 Расписание
                 </a>
@@ -664,6 +681,8 @@
             </div>
         </div>
     </div>
+
+    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="handleFileImport(event)">
 
     <script>
         // Глобальные переменные
@@ -917,6 +936,147 @@
                 }
             });
         };
+
+
+
+        // Функции для работы с IndexedDB
+        function openIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('SamboScheduleDB', 1);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+            });
+        }
+
+        function getIndexedDBData(db, storeName) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readonly');
+                const store = transaction.objectStore(storeName);
+                const request = store.getAll();
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+            });
+        }
+
+        function setIndexedDBData(db, storeName, data) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([storeName], 'readwrite');
+                const store = transaction.objectStore(storeName);
+                
+                // Очищаем существующие данные
+                store.clear();
+                
+                // Добавляем новые данные
+                data.forEach(item => {
+                    store.add(item);
+                });
+                
+                transaction.oncomplete = () => resolve();
+                transaction.onerror = () => reject(transaction.error);
+            });
+        }
+
+        // Экспорт данных
+        async function exportData() {
+            try {
+                const exportData = {
+                    students: students,
+                    schedule: [],
+                    timeSlots: []
+                };
+
+                // Получаем данные из IndexedDB
+                try {
+                    const db = await openIndexedDB();
+                    exportData.schedule = await getIndexedDBData(db, 'schedule');
+                    exportData.timeSlots = await getIndexedDBData(db, 'timeSlots');
+                    db.close();
+                } catch (error) {
+                    console.log('IndexedDB недоступна или пуста:', error);
+                }
+
+                // Создаем файл для скачивания
+                const dataStr = JSON.stringify(exportData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(dataBlob);
+                link.download = `sambo_backup_${new Date().toISOString().split('T')[0]}.json`;
+                link.click();
+                
+                URL.revokeObjectURL(link.href);
+                
+                alert('Данные экспортированы успешно!');
+            } catch (error) {
+                console.error('Ошибка экспорта:', error);
+                alert('Ошибка при экспорте данных');
+            }
+        }
+
+        // Импорт данных
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const importData = JSON.parse(e.target.result);
+                    
+                    // Проверяем структуру данных
+                    if (!importData.students || !Array.isArray(importData.students)) {
+                        throw new Error('Неверная структура файла');
+                    }
+
+                    // Подтверждение импорта
+                    const confirmImport = confirm(
+                        'Внимание! Импорт данных заменит все существующие данные.\n' +
+                        'Продолжить?'
+                    );
+                    
+                    if (!confirmImport) return;
+
+                    // Импортируем данные студентов
+                    students = importData.students;
+                    saveStudents();
+                    renderStudents();
+
+                    // Импортируем данные расписания в IndexedDB
+                    if (importData.schedule || importData.timeSlots) {
+                        try {
+                            const db = await openIndexedDB();
+                            
+                            if (importData.schedule && Array.isArray(importData.schedule)) {
+                                await setIndexedDBData(db, 'schedule', importData.schedule);
+                            }
+                            
+                            if (importData.timeSlots && Array.isArray(importData.timeSlots)) {
+                                await setIndexedDBData(db, 'timeSlots', importData.timeSlots);
+                            }
+                            
+                            db.close();
+                        } catch (error) {
+                            console.log('Ошибка импорта в IndexedDB:', error);
+                        }
+                    }
+
+                    alert('Данные импортированы успешно!');
+                    
+                } catch (error) {
+                    console.error('Ошибка импорта:', error);
+                    alert('Ошибка при чтении файла. Проверьте формат данных.');
+                }
+            };
+            
+            reader.readAsText(file);
+            event.target.value = ''; // Очищаем input
+        }
     </script>
     <script>
         if ('serviceWorker' in navigator) {
