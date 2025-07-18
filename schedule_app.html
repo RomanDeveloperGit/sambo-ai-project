@@ -820,6 +820,7 @@
             // Дизейблим чекбокс если нет студентов с доступными тренировками
             attendanceCheckbox.disabled = isAttended || (currentStudents.length > 0 && !hasStudentsWithTrainings);
             
+            // В функции openStudentModal(), замените блок создания элементов студентов на этот:
             students.forEach(student => {
                 const item = document.createElement('div');
                 item.className = 'student-item';
@@ -840,37 +841,35 @@
                     item.classList.add('disabled');
                     item.style.pointerEvents = 'none';
                     item.style.opacity = '0.5';
-                }
-                
-                // Проверяем, есть ли студент в текущем слоте (сравниваем как числа)
-                const isSelected = currentStudents && currentStudents.some(id => {
-                    const numericId = typeof id === 'string' ? parseInt(id) : id;
-                    return numericId === student.id;
-                });
-                
-                if (isSelected) {
-                    item.classList.add('selected');
-                }
-                
-                item.onclick = () => {
-                    if (!canSelect) return;
-                    
-                    item.classList.toggle('selected');
-                    
-                    // Обновляем состояние чекбокса при изменении выбора
-                    const selectedItems = document.querySelectorAll('#studentList .student-item.selected');
-                    const selectedIds = Array.from(selectedItems).map(item => parseInt(item.dataset.studentId));
-                    const hasStudentsWithTrainings = selectedIds.some(studentId => {
-                        const student = students.find(s => s.id === studentId);
-                        const studentSlotDate = new Date(selectedSlot.date);
-                        studentSlotDate.setHours(0, 0, 0, 0);
-                        const studentPaymentDate = new Date(student.paymentDate);
-                        studentPaymentDate.setHours(0, 0, 0, 0);
-                        return student && student.trainingsLeft > 0 && studentSlotDate >= studentPaymentDate;
+                } else {
+                    // Проверяем, есть ли студент в текущем слоте (только для доступных студентов)
+                    const isSelected = currentStudents && currentStudents.some(id => {
+                        const numericId = typeof id === 'string' ? parseInt(id) : id;
+                        return numericId === student.id;
                     });
                     
-                    attendanceCheckbox.disabled = isAttended || (selectedIds.length > 0 && !hasStudentsWithTrainings);
-                };
+                    if (isSelected) {
+                        item.classList.add('selected');
+                    }
+                    
+                    item.onclick = () => {
+                        item.classList.toggle('selected');
+                        
+                        // Обновляем состояние чекбокса при изменении выбора
+                        const selectedItems = document.querySelectorAll('#studentList .student-item.selected:not(.disabled)');
+                        const selectedIds = Array.from(selectedItems).map(item => parseInt(item.dataset.studentId));
+                        const hasStudentsWithTrainings = selectedIds.some(studentId => {
+                            const student = students.find(s => s.id === studentId);
+                            const studentSlotDate = new Date(selectedSlot.date);
+                            studentSlotDate.setHours(0, 0, 0, 0);
+                            const studentPaymentDate = new Date(student.paymentDate);
+                            studentPaymentDate.setHours(0, 0, 0, 0);
+                            return student && student.trainingsLeft > 0 && studentSlotDate >= studentPaymentDate;
+                        });
+                        
+                        attendanceCheckbox.disabled = isAttended || (selectedIds.length > 0 && !hasStudentsWithTrainings);
+                    };
+                }
                 
                 studentList.appendChild(item);
             });
@@ -878,7 +877,6 @@
             modal.style.display = 'block';
         }
 
-        // Замените функцию saveStudents на эту:
         function saveStudents() {
             if (!selectedSlot) return;
             
@@ -886,11 +884,26 @@
             const items = document.querySelectorAll('#studentList .student-item.selected');
             const attendanceCheckbox = document.getElementById('attendanceCheckbox');
             
+            // Проверяем, есть ли выбранные студенты с disabled состоянием
+            let hasDisabledStudents = false;
+            
             items.forEach(item => {
-                // Преобразуем в число
                 const studentId = parseInt(item.dataset.studentId);
+                
+                // Проверяем, является ли студент disabled
+                if (item.classList.contains('disabled')) {
+                    hasDisabledStudents = true;
+                    return;
+                }
+                
                 selectedStudents.push(studentId);
             });
+            
+            // Если есть disabled студенты среди выбранных, показываем ошибку и не сохраняем
+            if (hasDisabledStudents) {
+                alert('Нельзя выбрать студентов с истекшей оплатой или без доступных тренировок!');
+                return;
+            }
             
             if (selectedStudents.length === 0) {
                 delete schedule[selectedSlot.key];
@@ -914,7 +927,6 @@
             }
             
             // Если галочка выбрана - сохраняем данные для последующего использования
-            // НЕ сохраняем в schedule до ввода описания
             pendingTrainingData = {
                 selectedStudents: selectedStudents,
                 slotKey: selectedSlot.key,
