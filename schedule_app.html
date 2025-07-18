@@ -221,6 +221,34 @@
             border: 1px solid rgba(255, 107, 107, 0.6);
         }
 
+        .time-slot.occupied.present {
+            background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(67, 160, 71, 0.3));
+            border: 1px solid rgba(76, 175, 80, 0.6);
+        }
+
+        .attendance-checkbox {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 6px;
+            margin-bottom: 20px;
+        }
+
+        .attendance-checkbox input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .attendance-checkbox label {
+            cursor: pointer;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
         .student-names {
             font-size: 8px;
             text-align: center;
@@ -400,6 +428,10 @@
     <div id="studentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">Выберите учеников</div>
+            <div class="attendance-checkbox">
+                <input type="checkbox" id="attendanceCheckbox">
+                <label for="attendanceCheckbox">Отметить присутствие</label>
+            </div>
             <div class="student-list" id="studentList"></div>
             <div class="modal-buttons">
                 <button class="modal-btn save" onclick="saveStudents()">Сохранить</button>
@@ -513,13 +545,14 @@
             // Затем добавим текущие записи
             Object.keys(schedule).forEach(key => {
                 // Убеждаемся, что все ID студентов являются числами
-                const normalizedStudents = schedule[key].map(id => 
+                const normalizedStudents = schedule[key].students ? schedule[key].students.map(id => 
                     typeof id === 'string' ? parseInt(id) : id
-                );
+                ) : [];
                 
                 store.put({
                     id: key,
-                    students: normalizedStudents
+                    students: normalizedStudents,
+                    attended: schedule[key].attended || false
                 });
             });
         }
@@ -537,10 +570,14 @@
                 schedule = {};
                 data.forEach(item => {
                     // Убеждаемся, что все ID студентов являются числами
-                    const normalizedStudents = item.students.map(id => 
+                    const normalizedStudents = item.students ? item.students.map(id => 
                         typeof id === 'string' ? parseInt(id) : id
-                    );
-                    schedule[item.id] = normalizedStudents;
+                    ) : [];
+                    
+                    schedule[item.id] = {
+                        students: normalizedStudents,
+                        attended: item.attended || false
+                    };
                 });
                 loadTimeSlots();
             };
@@ -666,10 +703,17 @@
                     slot.className = 'time-slot';
                     
                     const slotKey = `${date.toDateString()}-${time}`;
-                    const slotStudents = schedule[slotKey] || [];
+                    const slotData = schedule[slotKey];
+                    const slotStudents = slotData ? slotData.students : [];
+                    const isAttended = slotData ? slotData.attended : false;
                     
-                    if (slotStudents.length > 0) {
+                    if (slotStudents && slotStudents.length > 0) {
                         slot.classList.add('occupied');
+
+                        if (isAttended) {
+                            slot.classList.add('present');
+                        }
+                        
                         const namesDiv = document.createElement('div');
                         namesDiv.className = 'student-names';
                         
@@ -702,10 +746,16 @@
             
             const modal = document.getElementById('studentModal');
             const studentList = document.getElementById('studentList');
+            const attendanceCheckbox = document.getElementById('attendanceCheckbox');
             
             studentList.innerHTML = '';
             
-            const currentStudents = schedule[selectedSlot.key] || [];
+            const slotData = schedule[selectedSlot.key];
+            const currentStudents = slotData ? slotData.students : [];
+            const isAttended = slotData ? slotData.attended : false;
+            
+            // Устанавливаем состояние чекбокса
+            attendanceCheckbox.checked = isAttended;
             
             students.forEach(student => {
                 const item = document.createElement('div');
@@ -714,7 +764,7 @@
                 item.dataset.studentId = student.id;
                 
                 // Проверяем, есть ли студент в текущем слоте (сравниваем как числа)
-                const isSelected = currentStudents.some(id => {
+                const isSelected = currentStudents && currentStudents.some(id => {
                     const numericId = typeof id === 'string' ? parseInt(id) : id;
                     return numericId === student.id;
                 });
@@ -739,6 +789,7 @@
             
             const selectedStudents = [];
             const items = document.querySelectorAll('#studentList .student-item.selected');
+            const attendanceCheckbox = document.getElementById('attendanceCheckbox');
             
             items.forEach(item => {
                 // Преобразуем в число
@@ -749,7 +800,10 @@
             if (selectedStudents.length === 0) {
                 delete schedule[selectedSlot.key];
             } else {
-                schedule[selectedSlot.key] = selectedStudents;
+                schedule[selectedSlot.key] = {
+                    students: selectedStudents,
+                    attended: attendanceCheckbox.checked
+                };
             }
             
             saveSchedule();
