@@ -183,6 +183,7 @@
         }
 
         .btn-success {
+            opacity: 0.25;
             background: linear-gradient(135deg, #4caf50, #388e3c);
         }
 
@@ -439,6 +440,7 @@
 
         .button-row {
             display: flex;
+            flex-direction: column;
             gap: 10px;
             margin-top: 25px;
         }
@@ -575,8 +577,8 @@
                 </div>
 
                 <div class="button-row">
-                    <button class="btn btn-success btn-small" onclick="openAttendanceModal()">
-                        ✓ Посещение
+                    <button class="btn btn-success btn-small" onclick="openAttendanceModal()" disabled>
+                        ✓ Посещение (временно недоступна, отмечайте в календаре)
                     </button>
                     <button class="btn btn-warning btn-small" onclick="openPaymentModal()">
                         💰 Оплата
@@ -785,7 +787,9 @@
         // Форматирование даты
         function formatDate(dateString) {
             const date = new Date(dateString);
-            return date.toLocaleDateString('ru-RU');
+            const convertedDate = date.toLocaleDateString('ru-RU');
+
+            return convertedDate === 'Invalid Date' ? dateString : convertedDate;
         }
 
         // Модальные окна

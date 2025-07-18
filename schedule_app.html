@@ -224,6 +224,8 @@
         .time-slot.occupied.present {
             background: linear-gradient(135deg, rgba(76, 175, 80, 0.3), rgba(67, 160, 71, 0.3));
             border: 1px solid rgba(76, 175, 80, 0.6);
+            pointer-events: none;
+            opacity: 0.7;
         }
 
         .attendance-checkbox {
@@ -243,10 +245,20 @@
             cursor: pointer;
         }
 
+         .attendance-checkbox input[type="checkbox"]:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
         .attendance-checkbox label {
             cursor: pointer;
             font-size: 14px;
             color: rgba(255, 255, 255, 0.9);
+        }
+
+        .attendance-checkbox.disabled label {
+            opacity: 0.5;
+            cursor: not-allowed;
         }
 
         .student-names {
@@ -322,6 +334,17 @@
             border-color: #ff6b6b;
         }
 
+        .student-item.disabled {
+            background: rgba(100, 100, 100, 0.3) !important;
+            color: rgba(255, 255, 255, 0.5) !important;
+            cursor: not-allowed !important;
+        }
+
+        .student-item.disabled:hover {
+            background: rgba(100, 100, 100, 0.3) !important;
+            transform: none !important;
+        }
+
         .modal-buttons {
             display: flex;
             gap: 10px;
@@ -376,6 +399,19 @@
             text-align: center;
             margin-bottom: 20px;
             color: rgba(255, 255, 255, 0.9);
+        }
+
+        .description-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 20px;
+            resize: vertical;
+            font-family: inherit;
         }
 
         @media (max-width: 768px) {
@@ -480,6 +516,18 @@
         </div>
     </div>
 
+    <!-- Модальное окно для описания тренировки -->
+    <div id="trainingDescriptionModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Описание тренировки</div>
+            <textarea class="description-input" id="trainingDescriptionInput" placeholder="Введите описание тренировки..." rows="4"></textarea>
+            <div class="modal-buttons">
+                <button class="modal-btn save" onclick="saveTrainingDescription()">Сохранить</button>
+                <button class="modal-btn cancel" onclick="closeTrainingDescriptionModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Данные приложения
         let students = [];
@@ -488,6 +536,7 @@
         let schedule = {};
         let selectedSlot = null;
         let timeToDelete = null;
+        let pendingTrainingData = null;
 
         // IndexedDB
         let db;
@@ -761,11 +810,37 @@
             // Устанавливаем состояние чекбокса
             attendanceCheckbox.checked = isAttended;
             
+            // Проверяем, есть ли студенты с trainingsLeft > 0
+            const hasStudentsWithTrainings = currentStudents.some(studentId => {
+                const numericId = typeof studentId === 'string' ? parseInt(studentId) : studentId;
+                const student = students.find(s => s.id === numericId);
+                return student && student.trainingsLeft > 0;
+            });
+            
+            // Дизейблим чекбокс если нет студентов с доступными тренировками
+            attendanceCheckbox.disabled = isAttended || (currentStudents.length > 0 && !hasStudentsWithTrainings);
+            
             students.forEach(student => {
                 const item = document.createElement('div');
                 item.className = 'student-item';
                 item.textContent = student.name;
                 item.dataset.studentId = student.id;
+                
+                // Проверяем дату оплаты относительно даты слота
+                const slotDate = new Date(selectedSlot.date);
+                slotDate.setHours(0, 0, 0, 0); // Нормализуем время
+                
+                const paymentDate = new Date(student.paymentDate);
+                paymentDate.setHours(0, 0, 0, 0); // Нормализуем время
+                
+                // Проверяем, можно ли выбрать студента
+                const canSelect = student.trainingsLeft > 0 && slotDate >= paymentDate;
+                
+                if (!canSelect) {
+                    item.classList.add('disabled');
+                    item.style.pointerEvents = 'none';
+                    item.style.opacity = '0.5';
+                }
                 
                 // Проверяем, есть ли студент в текущем слоте (сравниваем как числа)
                 const isSelected = currentStudents && currentStudents.some(id => {
@@ -778,7 +853,23 @@
                 }
                 
                 item.onclick = () => {
+                    if (!canSelect) return;
+                    
                     item.classList.toggle('selected');
+                    
+                    // Обновляем состояние чекбокса при изменении выбора
+                    const selectedItems = document.querySelectorAll('#studentList .student-item.selected');
+                    const selectedIds = Array.from(selectedItems).map(item => parseInt(item.dataset.studentId));
+                    const hasStudentsWithTrainings = selectedIds.some(studentId => {
+                        const student = students.find(s => s.id === studentId);
+                        const studentSlotDate = new Date(selectedSlot.date);
+                        studentSlotDate.setHours(0, 0, 0, 0);
+                        const studentPaymentDate = new Date(student.paymentDate);
+                        studentPaymentDate.setHours(0, 0, 0, 0);
+                        return student && student.trainingsLeft > 0 && studentSlotDate >= studentPaymentDate;
+                    });
+                    
+                    attendanceCheckbox.disabled = isAttended || (selectedIds.length > 0 && !hasStudentsWithTrainings);
                 };
                 
                 studentList.appendChild(item);
@@ -803,16 +894,37 @@
             
             if (selectedStudents.length === 0) {
                 delete schedule[selectedSlot.key];
-            } else {
-                schedule[selectedSlot.key] = {
-                    students: selectedStudents,
-                    attended: attendanceCheckbox.checked
-                };
+                saveSchedule();
+                renderCalendar();
+                closeStudentModal();
+                return;
             }
             
-            saveSchedule();
-            renderCalendar();
-            closeStudentModal();
+            const wasAttended = schedule[selectedSlot.key] ? schedule[selectedSlot.key].attended : false;
+            
+            schedule[selectedSlot.key] = {
+                students: selectedStudents,
+                attended: attendanceCheckbox.checked
+            };
+            
+            // Если отмечается посещение (и не было отмечено ранее)
+            if (attendanceCheckbox.checked && !wasAttended) {
+                // Сохраняем данные для последующего использования
+                pendingTrainingData = {
+                    selectedStudents: selectedStudents,
+                    slotKey: selectedSlot.key,
+                    slotDate: selectedSlot.date,
+                    slotTime: selectedSlot.time
+                };
+                
+                // Открываем модальное окно для ввода описания
+                closeStudentModal();
+                openTrainingDescriptionModal();
+            } else {
+                saveSchedule();
+                renderCalendar();
+                closeStudentModal();
+            }
         }
 
         // Закрытие модального окна студентов
@@ -928,12 +1040,92 @@
             document.getElementById('clearWeekModal').style.display = 'none';
         }
 
+        // Открытие модального окна описания тренировки
+        function openTrainingDescriptionModal() {
+            document.getElementById('trainingDescriptionModal').style.display = 'block';
+            document.getElementById('trainingDescriptionInput').value = '';
+            document.getElementById('trainingDescriptionInput').focus();
+        }
+
+        // Сохранение описания тренировки
+        function saveTrainingDescription() {
+            if (!pendingTrainingData) return;
+            
+            const description = document.getElementById('trainingDescriptionInput').value.trim() || '';
+            
+            // Обрабатываем каждого студента
+            pendingTrainingData.selectedStudents.forEach(studentId => {
+                const student = students.find(s => s.id === studentId);
+                if (student && student.trainingsLeft > 0) {
+                    // Проверяем дату окошка относительно paymentDate
+                    const slotDate = new Date(pendingTrainingData.slotDate);
+                    slotDate.setHours(0, 0, 0, 0); // Нормализуем время
+                    
+                    const paymentDate = new Date(student.paymentDate);
+                    paymentDate.setHours(0, 0, 0, 0); // Нормализуем время
+                    
+                    // Проверяем, что дата окошка не меньше paymentDate
+                    if (slotDate >= paymentDate) {
+                        // Создаем объект тренировки
+                        const trainingDate = new Date(pendingTrainingData.slotDate);
+                        const [hours, minutes] = pendingTrainingData.slotTime.split(':');
+                        trainingDate.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                        
+                        const training = {
+                            id: Date.now() + studentId, // Уникальный ID
+                            date: trainingDate.toISOString(),
+                            description: description,
+                            number: student.trainings.length + 1
+                        };
+                        
+                        student.trainings.unshift(training);
+                        student.trainingsLeft--;
+                    }
+                }
+            });
+            
+            // Сохраняем обновленных студентов в localStorage
+            localStorage.setItem('sambo_students', JSON.stringify(students));
+            
+            // Очищаем временные данные
+            pendingTrainingData = null;
+            
+            saveSchedule();
+            renderCalendar();
+            closeTrainingDescriptionModal();
+        }
+
+        // Закрытие модального окна описания тренировки
+        function closeTrainingDescriptionModal() {
+            document.getElementById('trainingDescriptionModal').style.display = 'none';
+            
+            // Если есть незавершенные данные, возвращаемся к модалке с учениками
+            if (pendingTrainingData) {
+                // Восстанавливаем selectedSlot
+                selectedSlot = {
+                    date: pendingTrainingData.slotDate,
+                    time: pendingTrainingData.slotTime,
+                    key: pendingTrainingData.slotKey
+                };
+                
+                // Открываем модалку с учениками
+                openStudentModal(pendingTrainingData.slotDate, pendingTrainingData.slotTime);
+                
+                // Очищаем временные данные
+                pendingTrainingData = null;
+            }
+        }
+
         // Обработчики событий для модальных окон
         window.onclick = function(event) {
             const modals = document.querySelectorAll('.modal');
             modals.forEach(modal => {
                 if (event.target === modal) {
-                    modal.style.display = 'none';
+                    if (modal.id === 'trainingDescriptionModal') {
+                        closeTrainingDescriptionModal();
+                    } else {
+                        modal.style.display = 'none';
+                    }
                 }
             });
         }
