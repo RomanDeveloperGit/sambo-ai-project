@@ -1,0 +1,881 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Самбо Расписание</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 50%, #2d2d54 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        .home-btn-header {
+            position: absolute;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(138, 43, 226, 0.8);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .home-btn-header:hover {
+            background: rgba(138, 43, 226, 1);
+            transform: translateY(-50%) translateY(-1px);
+        }
+
+        .header {
+            text-align: center;
+            padding: 20px 0;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 2px;
+            color: #ff6b6b;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .week-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-btn:hover {
+            background: linear-gradient(135deg, #ff5252, #ff4757);
+            transform: translateY(-1px);
+        }
+
+        .add-time-btn {
+            background: rgba(42, 82, 152, 0.8);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .add-time-btn:hover {
+            background: #2a5298;
+            transform: translateY(-1px);
+        }
+
+        .clear-week-btn {
+            background: rgba(70, 70, 100, 0.8);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-left: 10px;
+        }
+
+        .clear-week-btn:hover {
+            background: rgba(100, 100, 140, 0.8);
+            transform: translateY(-1px);
+        }
+
+        .calendar-container {
+            overflow-x: auto;
+        }
+
+        .calendar {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .calendar-header {
+            display: grid;
+            grid-template-columns: 80px repeat(auto-fit, minmax(60px, 1fr));
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .time-header {
+            padding: 10px 5px;
+            text-align: center;
+            font-size: 12px;
+            font-weight: 500;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: background 0.3s ease;
+            position: relative;
+        }
+
+        .time-header:hover {
+            background: rgba(255, 107, 107, 0.3);
+        }
+
+        .time-header:first-child {
+            background: rgba(26, 26, 58, 0.8);
+        }
+
+        .calendar-row {
+            display: grid;
+            grid-template-columns: 80px repeat(auto-fit, minmax(60px, 1fr));
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .day-label {
+            padding: 15px 5px;
+            text-align: center;
+            font-size: 11px;
+            font-weight: 500;
+            background: rgba(26, 26, 58, 0.8);
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .day-name {
+            font-size: 10px;
+            opacity: 0.8;
+            margin-bottom: 2px;
+        }
+
+        .day-date {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .time-slot {
+            padding: 5px;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .time-slot:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .time-slot.occupied {
+            background: linear-gradient(135deg, rgba(255, 107, 107, 0.3), rgba(255, 82, 82, 0.3));
+            border: 1px solid rgba(255, 107, 107, 0.6);
+        }
+
+        .student-names {
+            font-size: 8px;
+            text-align: center;
+            line-height: 1.2;
+            word-wrap: break-word;
+            overflow: hidden;
+            max-height: 40px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #0f0f23 0%, #1a1a3a 50%, #2d2d54 100%);
+            padding: 30px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #ff6b6b;
+            font-size: 18px;
+            font-weight: 300;
+        }
+
+        .student-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .student-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            text-align: center;
+        }
+
+        .student-item:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .student-item.selected {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            border-color: #ff6b6b;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .modal-btn.save {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            color: white;
+        }
+
+        .modal-btn.cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .modal-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .time-input {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            padding: 12px;
+            border-radius: 6px;
+            color: white;
+            font-size: 16px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .time-input:focus {
+            outline: none;
+            border-color: #ff6b6b;
+        }
+
+        .time-input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .confirm-text {
+            text-align: center;
+            margin-bottom: 20px;
+            color: rgba(255, 255, 255, 0.9);
+        }
+
+        @media (max-width: 480px) {
+            .calendar-header, .calendar-row {
+                grid-template-columns: 60px repeat(auto-fit, minmax(50px, 1fr));
+            }
+            
+            .time-header, .time-slot {
+                font-size: 10px;
+                padding: 8px 2px;
+            }
+            
+            .day-label {
+                font-size: 9px;
+                padding: 10px 2px;
+            }
+            
+            .student-names {
+                font-size: 7px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="./index.html" class="home-btn-header">← Главная</a>
+            <h1>САМБО РАСПИСАНИЕ</h1>
+        </div>
+        
+        <div class="controls">
+            <div class="week-nav">
+                <button class="nav-btn" onclick="previousWeek()">←</button>
+                <span id="weekDisplay">Неделя</span>
+                <button class="nav-btn" onclick="nextWeek()">→</button>
+            </div>
+            <div>
+                <button class="add-time-btn" onclick="openAddTimeModal()">+ Время</button>
+                <button class="clear-week-btn" onclick="openClearWeekModal()">Очистить неделю</button>
+            </div>
+        </div>
+        
+        <div class="calendar-container">
+            <div class="calendar" id="calendar">
+                <div class="calendar-header" id="calendarHeader">
+                    <div class="time-header">Время</div>
+                </div>
+                <div id="calendarBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для записи студентов -->
+    <div id="studentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Выберите учеников</div>
+            <div class="student-list" id="studentList"></div>
+            <div class="modal-buttons">
+                <button class="modal-btn save" onclick="saveStudents()">Сохранить</button>
+                <button class="modal-btn cancel" onclick="closeStudentModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для добавления времени -->
+    <div id="addTimeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Добавить время</div>
+            <input type="time" class="time-input" id="timeInput" placeholder="Введите время (например, 15:30)">
+            <div class="modal-buttons">
+                <button class="modal-btn save" onclick="addTime()">Добавить</button>
+                <button class="modal-btn cancel" onclick="closeAddTimeModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для подтверждения удаления -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Подтверждение</div>
+            <div class="confirm-text">Удалить это время из расписания?<br><br><strong>Внимание:</strong> Удаление времени уберет его из всех недель, и связанные с ним тренировки будут потеряны.</div>
+            <div class="modal-buttons">
+                <button class="modal-btn save" onclick="confirmDelete()">Удалить</button>
+                <button class="modal-btn cancel" onclick="closeConfirmModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для очистки недели -->
+    <div id="clearWeekModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Очистить неделю</div>
+            <div class="confirm-text">Удалить все записи на эту неделю?<br><br>Все запланированные тренировки будут потеряны.</div>
+            <div class="modal-buttons">
+                <button class="modal-btn save" onclick="confirmClearWeek()">Очистить</button>
+                <button class="modal-btn cancel" onclick="closeClearWeekModal()">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Данные приложения
+        let students = [];
+        let timeSlots = [];
+        let currentWeekStart = new Date();
+        let schedule = {};
+        let selectedSlot = null;
+        let timeToDelete = null;
+
+        // IndexedDB
+        let db;
+        const dbName = 'SamboScheduleDB';
+        const dbVersion = 1;
+
+        // Загрузка учеников из localStorage
+        function loadStudents() {
+            const storedStudents = localStorage.getItem('sambo_students');
+            if (storedStudents) {
+                students = JSON.parse(storedStudents);
+                // Убеждаемся, что все ID являются числами
+                students.forEach(student => {
+                    if (typeof student.id === 'string') {
+                        student.id = parseInt(student.id);
+                    }
+                });
+            } else {
+                students = [];
+            }
+        }
+
+        // Инициализация базы данных
+        function initDB() {
+            const request = indexedDB.open(dbName, dbVersion);
+            
+            request.onerror = function(event) {
+                console.error('Ошибка открытия базы данных:', event.target.error);
+            };
+            
+            request.onsuccess = function(event) {
+                db = event.target.result;
+                loadSchedule();
+            };
+            
+            request.onupgradeneeded = function(event) {
+                db = event.target.result;
+                
+                if (!db.objectStoreNames.contains('schedule')) {
+                    const scheduleStore = db.createObjectStore('schedule', { keyPath: 'id' });
+                }
+                
+                if (!db.objectStoreNames.contains('timeSlots')) {
+                    const timeSlotsStore = db.createObjectStore('timeSlots', { keyPath: 'id' });
+                }
+            };
+        }
+
+        // Сохранение расписания
+        function saveSchedule() {
+            if (!db) return;
+            
+            const transaction = db.transaction(['schedule'], 'readwrite');
+            const store = transaction.objectStore('schedule');
+            
+            // Сначала удалим все записи
+            store.clear();
+            
+            // Затем добавим текущие записи
+            Object.keys(schedule).forEach(key => {
+                // Убеждаемся, что все ID студентов являются числами
+                const normalizedStudents = schedule[key].map(id => 
+                    typeof id === 'string' ? parseInt(id) : id
+                );
+                
+                store.put({
+                    id: key,
+                    students: normalizedStudents
+                });
+            });
+        }
+
+        // Загрузка расписания
+        function loadSchedule() {
+            if (!db) return;
+            
+            const transaction = db.transaction(['schedule'], 'readonly');
+            const store = transaction.objectStore('schedule');
+            const request = store.getAll();
+            
+            request.onsuccess = function(event) {
+                const data = event.target.result;
+                schedule = {};
+                data.forEach(item => {
+                    // Убеждаемся, что все ID студентов являются числами
+                    const normalizedStudents = item.students.map(id => 
+                        typeof id === 'string' ? parseInt(id) : id
+                    );
+                    schedule[item.id] = normalizedStudents;
+                });
+                loadTimeSlots();
+            };
+        }
+
+        // Сохранение временных слотов
+        function saveTimeSlots() {
+            if (!db) return;
+            
+            const transaction = db.transaction(['timeSlots'], 'readwrite');
+            const store = transaction.objectStore('timeSlots');
+            
+            store.clear();
+            store.put({
+                id: 'slots',
+                slots: timeSlots
+            });
+        }
+
+        // Загрузка временных слотов
+        function loadTimeSlots() {
+            if (!db) return;
+            
+            const transaction = db.transaction(['timeSlots'], 'readonly');
+            const store = transaction.objectStore('timeSlots');
+            const request = store.get('slots');
+            
+            request.onsuccess = function(event) {
+                if (event.target.result) {
+                    timeSlots = event.target.result.slots;
+                }
+                renderCalendar();
+            };
+        }
+
+        // Получение начала недели
+        function getWeekStart(date) {
+            const d = new Date(date);
+            const day = d.getDay();
+            const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(d.setDate(diff));
+        }
+
+        // Нормализация даты (сброс времени до 00:00:00)
+        function normalizeDate(date) {
+            const normalized = new Date(date);
+            normalized.setHours(0, 0, 0, 0);
+            return normalized;
+        }
+
+        // Инициализация текущей недели
+        function initWeek() {
+            currentWeekStart = getWeekStart(new Date());
+            updateWeekDisplay();
+        }
+
+        // Обновление отображения недели
+        function updateWeekDisplay() {
+            const endDate = new Date(currentWeekStart);
+            endDate.setDate(endDate.getDate() + 6);
+            
+            const options = { day: 'numeric', month: 'short' };
+            const startStr = currentWeekStart.toLocaleDateString('ru-RU', options);
+            const endStr = endDate.toLocaleDateString('ru-RU', options);
+            
+            document.getElementById('weekDisplay').textContent = `${startStr} - ${endStr}`;
+        }
+
+        // Навигация по неделям
+        function previousWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+            updateWeekDisplay();
+            renderCalendar();
+        }
+
+        function nextWeek() {
+            currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+            updateWeekDisplay();
+            renderCalendar();
+        }
+
+        // Отрисовка календаря
+        function renderCalendar() {
+            const calendar = document.getElementById('calendar');
+            const header = document.getElementById('calendarHeader');
+            const body = document.getElementById('calendarBody');
+            
+            calendar.style = `min-width: ${(timeSlots.length + 1) * 70}px`;
+            
+            // Очистка
+            header.innerHTML = '<div class="time-header">Время</div>';
+            body.innerHTML = '';
+            
+            // Заголовки времени
+            timeSlots.forEach(time => {
+                const timeHeader = document.createElement('div');
+                timeHeader.className = 'time-header';
+                timeHeader.textContent = time;
+                timeHeader.onclick = () => openDeleteTimeModal(time);
+                header.appendChild(timeHeader);
+            });
+            
+            // Строки дней
+            const dayNames = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+            
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(currentWeekStart);
+                date.setDate(date.getDate() + i);
+                
+                const row = document.createElement('div');
+                row.className = 'calendar-row';
+                
+                const dayLabel = document.createElement('div');
+                const dateOptions = { day: '2-digit', month: '2-digit' };
+                dayLabel.className = 'day-label';
+                dayLabel.innerHTML = `<div class="day-name">${dayNames[i]}</div><div class="day-date">${date.toLocaleDateString('ru-RU', dateOptions)}</div>`;
+                row.appendChild(dayLabel);
+                
+                timeSlots.forEach(time => {
+                    const slot = document.createElement('div');
+                    slot.className = 'time-slot';
+                    
+                    const slotKey = `${date.toDateString()}-${time}`;
+                    const slotStudents = schedule[slotKey] || [];
+                    
+                    if (slotStudents.length > 0) {
+                        slot.classList.add('occupied');
+                        const namesDiv = document.createElement('div');
+                        namesDiv.className = 'student-names';
+                        
+                        // Находим имена студентов по их ID (сравниваем как числа)
+                        const studentNames = slotStudents.map(studentId => {
+                            const numericId = typeof studentId === 'string' ? parseInt(studentId) : studentId;
+                            const student = students.find(s => s.id === numericId);
+                            return student ? student.name : 'Неизвестный';
+                        });
+                        
+                        namesDiv.textContent = studentNames.join(', ');
+                        slot.appendChild(namesDiv);
+                    }
+                    
+                    slot.onclick = () => openStudentModal(date, time);
+                    row.appendChild(slot);
+                });
+                
+                body.appendChild(row);
+            }
+        }
+
+        // Открытие модального окна для студентов
+        function openStudentModal(date, time) {
+            selectedSlot = {
+                date: date,
+                time: time,
+                key: `${date.toDateString()}-${time}`
+            };
+            
+            const modal = document.getElementById('studentModal');
+            const studentList = document.getElementById('studentList');
+            
+            studentList.innerHTML = '';
+            
+            const currentStudents = schedule[selectedSlot.key] || [];
+            
+            students.forEach(student => {
+                const item = document.createElement('div');
+                item.className = 'student-item';
+                item.textContent = student.name;
+                item.dataset.studentId = student.id;
+                
+                // Проверяем, есть ли студент в текущем слоте (сравниваем как числа)
+                const isSelected = currentStudents.some(id => {
+                    const numericId = typeof id === 'string' ? parseInt(id) : id;
+                    return numericId === student.id;
+                });
+                
+                if (isSelected) {
+                    item.classList.add('selected');
+                }
+                
+                item.onclick = () => {
+                    item.classList.toggle('selected');
+                };
+                
+                studentList.appendChild(item);
+            });
+            
+            modal.style.display = 'block';
+        }
+
+        // Сохранение студентов
+        function saveStudents() {
+            if (!selectedSlot) return;
+            
+            const selectedStudents = [];
+            const items = document.querySelectorAll('#studentList .student-item.selected');
+            
+            items.forEach(item => {
+                // Преобразуем в число
+                const studentId = parseInt(item.dataset.studentId);
+                selectedStudents.push(studentId);
+            });
+            
+            if (selectedStudents.length === 0) {
+                delete schedule[selectedSlot.key];
+            } else {
+                schedule[selectedSlot.key] = selectedStudents;
+            }
+            
+            saveSchedule();
+            renderCalendar();
+            closeStudentModal();
+        }
+
+        // Закрытие модального окна студентов
+        function closeStudentModal() {
+            document.getElementById('studentModal').style.display = 'none';
+            selectedSlot = null;
+        }
+
+        // Открытие модального окна добавления времени
+        function openAddTimeModal() {
+            document.getElementById('addTimeModal').style.display = 'block';
+            document.getElementById('timeInput').value = '';
+        }
+
+        // Добавление времени
+        function addTime() {
+            const timeInput = document.getElementById('timeInput');
+            const time = timeInput.value;
+            
+            if (time && !timeSlots.includes(time)) {
+                timeSlots.push(time);
+                timeSlots.sort();
+                saveTimeSlots();
+                renderCalendar();
+            }
+            
+            closeAddTimeModal();
+        }
+
+        // Закрытие модального окна добавления времени
+        function closeAddTimeModal() {
+            document.getElementById('addTimeModal').style.display = 'none';
+        }
+
+        // Открытие модального окна удаления времени
+        function openDeleteTimeModal(time) {
+            timeToDelete = time;
+            document.getElementById('confirmModal').style.display = 'block';
+        }
+
+        // Подтверждение удаления
+        function confirmDelete() {
+            if (timeToDelete) {
+                timeSlots = timeSlots.filter(t => t !== timeToDelete);
+                
+                // Удаление связанных записей из расписания
+                Object.keys(schedule).forEach(key => {
+                    if (key.includes(`-${timeToDelete}`)) {
+                        delete schedule[key];
+                    }
+                });
+                
+                saveTimeSlots();
+                saveSchedule();
+                renderCalendar();
+            }
+            
+            closeConfirmModal();
+        }
+
+        // Закрытие модального окна подтверждения
+        function closeConfirmModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            timeToDelete = null;
+        }
+
+        // Открытие модального окна очистки недели
+        function openClearWeekModal() {
+            document.getElementById('clearWeekModal').style.display = 'block';
+        }
+
+        // Подтверждение очистки недели
+        function confirmClearWeek() {
+            // Получаем начало и конец текущей недели с нормализованным временем (00:00:00)
+            const weekStart = normalizeDate(currentWeekStart);
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            weekEnd.setHours(23, 59, 59, 999); // Конец дня
+            
+            console.log('Очищаем неделю:', { weekStart, weekEnd });
+            
+            // Собираем ключи для удаления
+            const keysToDelete = [];
+            
+            Object.keys(schedule).forEach(key => {
+                // Извлекаем дату из ключа (формат: "Mon Oct 21 2024-15:30")
+                const datePart = key.split('-')[0];
+                const keyDate = normalizeDate(new Date(datePart));
+                
+                // Проверяем, находится ли дата в пределах текущей недели
+                if (keyDate >= weekStart && keyDate <= weekEnd) {
+                    keysToDelete.push(key);
+                }
+            });
+            
+            console.log('Ключи для удаления:', keysToDelete);
+            
+            // Удаляем найденные ключи
+            keysToDelete.forEach(key => {
+                delete schedule[key];
+            });
+            
+            // Сохраняем изменения в базе данных
+            saveSchedule();
+            renderCalendar();
+            closeClearWeekModal();
+            
+            console.log('Неделя очищена. Оставшиеся записи:', Object.keys(schedule));
+        }
+
+        // Закрытие модального окна очистки недели
+        function closeClearWeekModal() {
+            document.getElementById('clearWeekModal').style.display = 'none';
+        }
+
+        // Обработчики событий для модальных окон
+        window.onclick = function(event) {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Инициализация приложения
+        document.addEventListener('DOMContentLoaded', function() {
+            loadStudents();
+            initDB();
+            initWeek();
+        });
+    </script>
+</body>
+</html>

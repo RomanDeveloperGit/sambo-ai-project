@@ -47,6 +47,48 @@
             font-weight: 300;
         }
 
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .nav-btn {
+            background: linear-gradient(135deg, #6c7b95, #5a6c7d);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(108, 123, 149, 0.2);
+            flex: 1;
+            text-decoration: none;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .nav-btn_add-new {
+            background: linear-gradient(135deg, #ff6b6b, #ff5252);
+            color: white;
+            border: none;
+        }
+
+        .nav-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(108, 123, 149, 0.3);
+        }
+
+        .nav-btn:active {
+            transform: translateY(0);
+        }
+
         .filter-section {
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
@@ -464,6 +506,15 @@
                 <p>Управление учениками</p>
             </div>
 
+            <div class="nav-buttons">
+                <a href="./schedule_app.html" class="nav-btn">
+                    📅 Расписание
+                </a>
+                <button class="nav-btn nav-btn_add-new" onclick="openAddStudentModal()">
+                    ➕ Добавить ученика
+                </button>
+            </div>
+
             <div class="filter-section">
                 <div class="filter-title">Сортировка</div>
                 <div class="filter-buttons">
@@ -472,10 +523,6 @@
                     <button class="filter-btn" onclick="setFilter('trainings-desc')">По тренировкам ↓</button>
                 </div>
             </div>
-
-            <button class="btn" onclick="openAddStudentModal()">
-                ➕ Добавить ученика
-            </button>
 
             <div class="students-list">
                 <div id="students-container">
